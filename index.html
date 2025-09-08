@@ -1,13 +1,32 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>南北season与似缘若浠</title>
+    <!-- 1. 先引入外部资源 -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+    <!-- 2. Firebase初始化（必须放在单独<script>标签中，且在业务逻辑前） -->
+    <script>
+        // Firebase 配置（你的配置已验证正确，无需修改）
+        const firebaseConfig = {
+            apiKey: "AIzaSyC3ZQAKEDGS02vWh1alwTGa1H-zYxJKCIM",
+            authDomain: "fangslove629.firebaseapp.com",
+            projectId: "fangslove629",
+            storageBucket: "fangslove629.firebasestorage.app",
+            messagingSenderId: "203655156804",
+            appId: "1:203655156804:web:7382793487b4534d36d811"
+        };
+        // 初始化Firebase（关键：先初始化才能使用db）
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+    </script>
+
+    <!-- 3. Tailwind配置 -->
     <script>
         tailwind.config = {
             theme: {
@@ -25,19 +44,8 @@
             }
         }
     </script>
-    // Firebase 配置 - 替换为你自己的配置信息
-    const firebaseConfig = {
-    apiKey: "AIzaSyC3ZQAKEDGS02vWh1alwTGa1H-zYxJKCIM",
-    authDomain: "fangslove629.firebaseapp.com",
-    projectId: "fangslove629",
-    storageBucket: "fangslove629.firebasestorage.app",
-    messagingSenderId: "203655156804",
-    appId: "1:203655156804:web:7382793487b4534d36d811"
-};
 
-// 初始化Firebase
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+    <!-- 4. Tailwind自定义工具类 -->
     <style type="text/tailwindcss">
         @layer utilities {
             .content-auto {
@@ -213,6 +221,7 @@ const db = firebase.firestore();
         <span>兑换成功！</span>
     </div>
 
+    <!-- 5. 核心业务逻辑（必须在Firebase初始化后） -->
     <script>
         // 数据模型
         const appState = {
@@ -247,85 +256,71 @@ const db = firebase.firestore();
             redeemToast: document.getElementById('redeem-toast')
         };
 
-
-        // 初始化应用
-        function initApp() {
-          // 从Firebase加载数据
-          loadFromFirebase().then(() => {
-            // 渲染UI
-            renderGoals();
-            renderRewards();
-            renderRedemptionHistory();
-            updatePointsDisplay();
-          });
-          
-          // 绑定事件监听器
-          bindEventListeners();
+        // -------------------------- 修复1：移出嵌套的函数 --------------------------
+        // 从本地备份加载数据（之前嵌套在saveToFirebase里，导致外部无法调用）
+        function loadFromLocalStorage() {
+            const savedGoals = localStorage.getItem('coupleGoalsBackup');
+            const savedRewards = localStorage.getItem('coupleRewardsBackup');
+            const savedPoints = localStorage.getItem('coupleTotalPointsBackup');
+            const savedHistory = localStorage.getItem('coupleRedemptionHistoryBackup');
+            const savedCheckins = localStorage.getItem('coupleLastCheckinsBackup');
+            
+            if (savedGoals) appState.goals = JSON.parse(savedGoals);
+            if (savedRewards) appState.rewards = JSON.parse(savedRewards);
+            if (savedPoints) appState.totalPoints = parseInt(savedPoints);
+            if (savedHistory) appState.redemptionHistory = JSON.parse(savedHistory);
+            if (savedCheckins) appState.lastCheckins = JSON.parse(savedCheckins);
         }
 
-        // 从本地存储加载数据
+        // 保存到本地备份（之前嵌套在saveToFirebase里，导致外部无法调用）
+        function saveToLocalStorage() {
+            localStorage.setItem('coupleGoalsBackup', JSON.stringify(appState.goals));
+            localStorage.setItem('coupleRewardsBackup', JSON.stringify(appState.rewards));
+            localStorage.setItem('coupleTotalPointsBackup', appState.totalPoints.toString());
+            localStorage.setItem('coupleRedemptionHistoryBackup', JSON.stringify(appState.redemptionHistory));
+            localStorage.setItem('coupleLastCheckinsBackup', JSON.stringify(appState.lastCheckins));
+        }
+
+        // 从Firebase加载数据
         async function loadFromFirebase() {
-          try {
-        const doc = await db.collection('appData').doc('coupleGoals').get();
-        if (doc.exists) {
-          const data = doc.data();
-          appState.goals = data.goals || [];
-          appState.rewards = data.rewards || [];
-          appState.totalPoints = data.totalPoints || 0;
-          appState.redemptionHistory = data.redemptionHistory || [];
-          appState.lastCheckins = data.lastCheckins || {};
+            try {
+                const doc = await db.collection('appData').doc('coupleGoals').get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    appState.goals = data.goals || [];
+                    appState.rewards = data.rewards || [];
+                    appState.totalPoints = data.totalPoints || 0;
+                    appState.redemptionHistory = data.redemptionHistory || [];
+                    appState.lastCheckins = data.lastCheckins || {};
+                }
+                cleanupOldCheckins();
+            } catch (error) {
+                console.error("加载数据失败:", error);
+                // Firebase加载失败时，用本地备份兜底
+                loadFromLocalStorage();
+            }
         }
-        cleanupOldCheckins();
-              
-  } catch (error) {
-    console.error("加载数据失败:", error);
-    // 如果Firebase加载失败，使用本地存储备份
-    loadFromLocalStorage();
-  }
-}
 
-        // 保存数据到本地存储
-    // 保存数据到Firebase
-    async function saveToFirebase() {
-      try {
-        await db.collection('appData').doc('coupleGoals').set({
-          goals: appState.goals,
-          rewards: appState.rewards,
-          totalPoints: appState.totalPoints,
-          redemptionHistory: appState.redemptionHistory,
-          lastCheckins: appState.lastCheckins
-        });
-
-          
-    // 同时保存到本地作为备份
-    localStorage.setItem('coupleGoalsBackup', JSON.stringify(appState.goals));
-    localStorage.setItem('coupleRewardsBackup', JSON.stringify(appState.rewards));
-    localStorage.setItem('coupleTotalPointsBackup', appState.totalPoints.toString());
-
-
-// 从本地备份加载数据
-function loadFromLocalStorage() {
-  const savedGoals = localStorage.getItem('coupleGoalsBackup');
-  const savedRewards = localStorage.getItem('coupleRewardsBackup');
-  const savedPoints = localStorage.getItem('coupleTotalPointsBackup');
-  
-  if (savedGoals) appState.goals = JSON.parse(savedGoals);
-  if (savedRewards) appState.rewards = JSON.parse(savedRewards);
-  if (savedPoints) appState.totalPoints = parseInt(savedPoints);
-}
-
-// 保存到本地备份
-function saveToLocalStorage() {
-  localStorage.setItem('coupleGoalsBackup', JSON.stringify(appState.goals));
-  localStorage.setItem('coupleRewardsBackup', JSON.stringify(appState.rewards));
-  localStorage.setItem('coupleTotalPointsBackup', appState.totalPoints.toString());
-}
-  } catch (error) {
-    console.error("保存数据失败:", error);
-    // 保存失败时使用本地存储
-    saveToLocalStorage();
-  }
-}
+        // 保存数据到Firebase
+        async function saveToFirebase() {
+            try {
+                await db.collection('appData').doc('coupleGoals').set({
+                    goals: appState.goals,
+                    rewards: appState.rewards,
+                    totalPoints: appState.totalPoints,
+                    redemptionHistory: appState.redemptionHistory,
+                    lastCheckins: appState.lastCheckins
+                });
+                // 同时保存到本地备份
+                saveToLocalStorage();
+                console.log("数据已同步到Firebase");
+            } catch (error) {
+                console.error("保存数据失败:", error);
+                // 保存失败时，用本地存储
+                saveToLocalStorage();
+            }
+        }
+        // -------------------------- 修复1结束 --------------------------
 
         // 清理过期的签到记录
         function cleanupOldCheckins() {
@@ -335,8 +330,35 @@ function saveToLocalStorage() {
                     delete appState.lastCheckins[goalId];
                 }
             }
-             saveToFirebase();
+            saveToFirebase();
         }
+
+        // -------------------------- 修复2：补充缺失的openAddGoalModal函数 --------------------------
+        // 打开添加目标模态框（之前代码中调用了，但没定义）
+        function openAddGoalModal() {
+            elements.addGoalModal.classList.remove('hidden');
+            // 添加动画效果
+            setTimeout(() => {
+                const modalContent = elements.addGoalModal.querySelector('div');
+                if (modalContent) {
+                    modalContent.classList.add('scale-100');
+                    modalContent.classList.remove('scale-95');
+                }
+            }, 10);
+        }
+
+        // 打开添加奖励模态框（之前代码中调用了，但没定义）
+        function openAddRewardModal() {
+            elements.addRewardModal.classList.remove('hidden');
+            setTimeout(() => {
+                const modalContent = elements.addRewardModal.querySelector('div');
+                if (modalContent) {
+                    modalContent.classList.add('scale-100');
+                    modalContent.classList.remove('scale-95');
+                }
+            }, 10);
+        }
+        // -------------------------- 修复2结束 --------------------------
 
         // 渲染目标列表
         function renderGoals() {
@@ -353,7 +375,11 @@ function saveToLocalStorage() {
                         </button>
                     </div>
                 `;
-                document.getElementById('empty-add-goal-btn').addEventListener('click', openAddGoalModal);
+                // 绑定空状态下的添加目标按钮事件
+                const emptyAddBtn = document.getElementById('empty-add-goal-btn');
+                if (emptyAddBtn) {
+                    emptyAddBtn.addEventListener('click', openAddGoalModal);
+                }
                 return;
             }
             
@@ -392,19 +418,25 @@ function saveToLocalStorage() {
                 
                 elements.goalsContainer.appendChild(goalCard);
                 
-                // 添加签到事件监听
+                // 绑定签到事件
                 if (!isDisabled) {
-                    goalCard.querySelector('.checkin-btn').addEventListener('click', () => {
-                        handleCheckin(goal.id);
-                    });
+                    const checkinBtn = goalCard.querySelector('.checkin-btn');
+                    if (checkinBtn) {
+                        checkinBtn.addEventListener('click', () => {
+                            handleCheckin(goal.id);
+                        });
+                    }
                 }
                 
-                // 添加删除目标事件监听
-                goalCard.querySelector('.delete-goal-btn').addEventListener('click', () => {
-                    if (confirm(`确定要删除目标"${goal.name}"吗？`)) {
-                        deleteGoal(goal.id);
-                    }
-                });
+                // 绑定删除目标事件
+                const deleteBtn = goalCard.querySelector('.delete-goal-btn');
+                if (deleteBtn) {
+                    deleteBtn.addEventListener('click', () => {
+                        if (confirm(`确定要删除目标"${goal.name}"吗？`)) {
+                            deleteGoal(goal.id);
+                        }
+                    });
+                }
             });
         }
 
@@ -443,11 +475,14 @@ function saveToLocalStorage() {
                 
                 elements.rewardsContainer.appendChild(rewardEl);
                 
-                // 添加兑换事件监听
+                // 绑定兑换事件
                 if (canRedeem) {
-                    rewardEl.querySelector('.redeem-btn').addEventListener('click', () => {
-                        handleRedeem(reward.id);
-                    });
+                    const redeemBtn = rewardEl.querySelector('.redeem-btn');
+                    if (redeemBtn) {
+                        redeemBtn.addEventListener('click', () => {
+                            handleRedeem(reward.id);
+                        });
+                    }
                 }
             });
         }
@@ -562,7 +597,7 @@ function saveToLocalStorage() {
             };
             
             appState.rewards.push(newReward);
-             saveToFirebase();
+            saveToFirebase();
             renderRewards();
         }
 
@@ -570,7 +605,7 @@ function saveToLocalStorage() {
         function deleteGoal(goalId) {
             appState.goals = appState.goals.filter(goal => goal.id !== goalId);
             delete appState.lastCheckins[goalId]; // 同时删除签到记录
-             saveToFirebase();
+            saveToFirebase();
             renderGoals();
         }
 
@@ -593,30 +628,10 @@ function saveToLocalStorage() {
             }, 3000);
         }
 
-        // 打开添加目标模态框
-        function openAddGoalModal() {
-            elements.addGoalModal.classList.remove('hidden');
-            // 添加动画效果
-            setTimeout(() => {
-                elements.addGoalModal.querySelector('div').classList.add('scale-100');
-                elements.addGoalModal.querySelector('div').classList.remove('scale-95');
-            }, 10);
-        }
-
         // 关闭添加目标模态框
         function closeAddGoalModal() {
             elements.addGoalModal.classList.add('hidden');
             elements.addGoalForm.reset();
-        }
-
-        // 打开添加奖励模态框
-        function openAddRewardModal() {
-            elements.addRewardModal.classList.remove('hidden');
-            // 添加动画效果
-            setTimeout(() => {
-                elements.addRewardModal.querySelector('div').classList.add('scale-100');
-                elements.addRewardModal.querySelector('div').classList.remove('scale-95');
-            }, 10);
         }
 
         // 关闭添加奖励模态框
@@ -640,51 +655,91 @@ function saveToLocalStorage() {
         // 绑定事件监听器
         function bindEventListeners() {
             // 页面切换
-            elements.switchTabBtn.addEventListener('click', switchToRewards);
-            elements.backToGoalsBtn.addEventListener('click', switchToGoals);
+            if (elements.switchTabBtn) {
+                elements.switchTabBtn.addEventListener('click', switchToRewards);
+            }
+            if (elements.backToGoalsBtn) {
+                elements.backToGoalsBtn.addEventListener('click', switchToGoals);
+            }
             
             // 添加目标相关
-            elements.addGoalBtn.addEventListener('click', openAddGoalModal);
-            elements.cancelGoalBtn.addEventListener('click', closeAddGoalModal);
+            if (elements.addGoalBtn) {
+                elements.addGoalBtn.addEventListener('click', openAddGoalModal);
+            }
+            if (elements.cancelGoalBtn) {
+                elements.cancelGoalBtn.addEventListener('click', closeAddGoalModal);
+            }
             
-            elements.addGoalForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const name = document.getElementById('goal-name').value;
-                const points = document.getElementById('goal-points').value;
-                const checkinLimit = document.querySelector('input[name="checkin-limit"]:checked').value;
-                
-                addGoal(name, points, checkinLimit);
-                closeAddGoalModal();
-            });
+            if (elements.addGoalForm) {
+                elements.addGoalForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const name = document.getElementById('goal-name').value;
+                    const points = document.getElementById('goal-points').value;
+                    const checkinLimit = document.querySelector('input[name="checkin-limit"]:checked')?.value || 'once';
+                    
+                    addGoal(name, points, checkinLimit);
+                    closeAddGoalModal();
+                });
+            }
             
             // 添加奖励相关
-            elements.addRewardBtn.addEventListener('click', openAddRewardModal);
-            elements.cancelRewardBtn.addEventListener('click', closeAddRewardModal);
+            if (elements.addRewardBtn) {
+                elements.addRewardBtn.addEventListener('click', openAddRewardModal);
+            }
+            if (elements.cancelRewardBtn) {
+                elements.cancelRewardBtn.addEventListener('click', closeAddRewardModal);
+            }
             
-            elements.addRewardForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const name = document.getElementById('reward-name').value;
-                const cost = document.getElementById('reward-cost').value;
-                
-                addReward(name, cost);
-                closeAddRewardModal();
-            });
+            if (elements.addRewardForm) {
+                elements.addRewardForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const name = document.getElementById('reward-name').value;
+                    const cost = document.getElementById('reward-cost').value;
+                    
+                    addReward(name, cost);
+                    closeAddRewardModal();
+                });
+            }
             
             // 点击模态框外部关闭
-            elements.addGoalModal.addEventListener('click', (e) => {
-                if (e.target === elements.addGoalModal) {
-                    closeAddGoalModal();
-                }
-            });
+            if (elements.addGoalModal) {
+                elements.addGoalModal.addEventListener('click', (e) => {
+                    if (e.target === elements.addGoalModal) {
+                        closeAddGoalModal();
+                    }
+                });
+            }
             
-            elements.addRewardModal.addEventListener('click', (e) => {
-                if (e.target === elements.addRewardModal) {
-                    closeAddRewardModal();
-                }
-            });
+            if (elements.addRewardModal) {
+                elements.addRewardModal.addEventListener('click', (e) => {
+                    if (e.target === elements.addRewardModal) {
+                        closeAddRewardModal();
+                    }
+                });
+            }
         }
 
-        // 启动应用
+        // 初始化应用
+        function initApp() {
+            // 从Firebase加载数据，加载完成后渲染UI
+            loadFromFirebase().then(() => {
+                renderGoals();
+                renderRewards();
+                renderRedemptionHistory();
+                updatePointsDisplay();
+            }).catch(err => {
+                console.error('初始化失败，使用本地数据:', err);
+                renderGoals();
+                renderRewards();
+                renderRedemptionHistory();
+                updatePointsDisplay();
+            });
+            
+            // 绑定事件监听器
+            bindEventListeners();
+        }
+
+        // 启动应用（确保DOM加载完成后执行）
         document.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
