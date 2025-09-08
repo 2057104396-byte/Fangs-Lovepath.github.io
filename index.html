@@ -1,288 +1,691 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>南北season与似缘若浠</title>
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js"></script>
-    
-    <!-- Firebase 初始化 -->
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyC3ZQAKEDGS02vWh1alwTGa1H-zYxJKCIM",
-            authDomain: "fangslove629.firebaseapp.com",
-            projectId: "fangslove629",
-            storageBucket: "fangslove629.firebasestorage.app",
-            messagingSenderId: "203655156804",
-            appId: "1:203655156804:web:7382793487b4534d36d811"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-    </script>
-
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-    
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        primary: '#F97316',
-                        secondary: '#EC4899'
-                    }
+                        primary: '#F97316', // 温暖的橙色作为主色调，代表活力与热情
+                        secondary: '#EC4899', // 浪漫的粉色作为辅助色
+                        neutral: '#1F2937',
+                        light: '#F9FAFB'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
                 }
             }
         }
     </script>
+    // Firebase 配置 - 替换为你自己的配置信息
+    const firebaseConfig = {
+    apiKey: "AIzaSyC3ZQAKEDGS02vWh1alwTGa1H-zYxJKCIM",
+    authDomain: "fangslove629.firebaseapp.com",
+    projectId: "fangslove629",
+    storageBucket: "fangslove629.firebasestorage.app",
+    messagingSenderId: "203655156804",
+    appId: "1:203655156804:web:7382793487b4534d36d811"
+};
 
+// 初始化Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
     <style type="text/tailwindcss">
         @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .card-shadow {
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            }
             .goal-card {
-                @apply bg-white rounded-xl p-5 shadow-md hover:shadow-lg transition-all;
+                @apply bg-white rounded-xl p-5 card-shadow transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
             }
             .btn-primary {
-                @apply bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90;
+                @apply bg-primary text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/50;
             }
             .btn-secondary {
-                @apply bg-secondary text-white px-4 py-2 rounded-lg hover:bg-secondary/90;
+                @apply bg-secondary text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-secondary/50;
             }
         }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen pt-20">
-    <!-- 导航栏 -->
-    <nav class="bg-white shadow-sm fixed top-0 left-0 right-0 z-10 p-4">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold text-primary flex items-center">
-                <i class="fa fa-heart mr-2 text-secondary animate-pulse"></i>
-                今天也很爱姐姐哦
-            </h1>
-            <div class="flex items-center gap-4">
-                <div class="bg-gray-100 rounded-full px-4 py-1.5 flex items-center">
-                    <i class="fa fa-star text-yellow-400 mr-1"></i>
-                    <span id="total-points" class="font-bold">0</span>
-                    <span class="ml-1">积分</span>
+<body class="bg-gray-50 min-h-screen font-sans">
+    <!-- 顶部导航栏 -->
+    <nav class="bg-white shadow-sm fixed top-0 left-0 right-0 z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-bold text-primary flex items-center">
+                        <i class="fa fa-heart mr-2 text-secondary animate-pulse"></i>
+                        今天也很爱姐姐哦
+                    </h1>
                 </div>
-                <button id="switch-to-rewards" class="btn-primary text-sm">
-                    <i class="fa fa-gift mr-1"></i> 兑换奖励
-                </button>
+                <div class="flex items-center space-x-4">
+                    <div class="bg-light rounded-full px-4 py-1.5 flex items-center text-neutral">
+                        <i class="fa fa-star text-yellow-400 mr-1"></i>
+                        <span id="total-points" class="font-bold">0</span>
+                        <span class="ml-1">积分</span>
+                    </div>
+                    <button id="switch-tab-btn" class="btn-primary text-sm">
+                        <i class="fa fa-gift mr-1"></i> 兑换奖励
+                    </button>
+                </div>
             </div>
         </div>
     </nav>
 
-    <!-- 主内容 -->
-    <main class="max-w-7xl mx-auto px-4 py-8">
-        <!-- 目标区域 -->
-        <section id="goals-area">
+    <!-- 主内容区 -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16">
+        <!-- 目标列表区域 -->
+        <section id="goals-section">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold">每日目标</h2>
-                <button id="add-goal" class="btn-secondary">
+                <h2 class="text-2xl font-bold text-neutral">每日目标</h2>
+                <button id="add-goal-btn" class="btn-secondary">
                     <i class="fa fa-plus mr-1"></i> 添加目标
                 </button>
             </div>
-            <div id="goals-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- 目标卡片将动态生成 -->
+            
+            <div id="goals-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- 目标卡片将通过JavaScript动态生成 -->
             </div>
         </section>
 
-        <!-- 奖励区域（默认隐藏） -->
-        <section id="rewards-area" class="hidden">
+        <!-- 奖励兑换区域 (默认隐藏) -->
+        <section id="rewards-section" class="hidden">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold">奖励兑换</h2>
-                <button id="back-to-goals" class="btn-primary">
+                <h2 class="text-2xl font-bold text-neutral">奖励兑换</h2>
+                <button id="back-to-goals-btn" class="btn-primary">
                     <i class="fa fa-arrow-left mr-1"></i> 返回目标
                 </button>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-white rounded-xl p-6 shadow-md">
-                    <h3 class="text-xl font-semibold mb-4">可用积分</h3>
-                    <div class="flex items-center justify-center py-8">
-                        <span id="points-display" class="text-5xl font-bold text-primary">0</span>
+            <div class="flex flex-col md:flex-row gap-6">
+                <div class="w-full md:w-1/2">
+                    <div class="bg-white rounded-xl p-6 card-shadow">
+                        <h3 class="text-xl font-semibold mb-4 text-neutral">可用积分</h3>
+                        <div class="flex items-center justify-center py-8">
+                            <div class="text-center">
+                                <span id="rewards-points" class="text-5xl font-bold text-primary">0</span>
+                                <p class="text-gray-500 mt-2">积分可以兑换以下奖励</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="bg-white rounded-xl p-6 shadow-md">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-xl font-semibold">可兑换奖励</h3>
-                        <button id="add-reward" class="btn-secondary text-sm">
-                            <i class="fa fa-plus mr-1"></i> 添加奖励
-                        </button>
+                <div class="w-full md:w-1/2">
+                    <div class="bg-white rounded-xl p-6 card-shadow">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-semibold text-neutral">可兑换奖励</h3>
+                            <button id="add-reward-btn" class="text-sm btn-secondary">
+                                <i class="fa fa-plus mr-1"></i> 添加奖励
+                            </button>
+                        </div>
+                        <div id="rewards-container" class="space-y-4">
+                            <!-- 奖励将通过JavaScript动态生成 -->
+                        </div>
                     </div>
-                    <div id="rewards-list" class="space-y-4">
-                        <!-- 奖励将动态生成 -->
-                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-8 bg-white rounded-xl p-6 card-shadow">
+                <h3 class="text-xl font-semibold mb-4 text-neutral">兑换记录</h3>
+                <div id="redemption-history" class="space-y-3">
+                    <!-- 兑换记录将通过JavaScript动态生成 -->
+                    <p class="text-gray-500 text-center py-6">暂无兑换记录</p>
                 </div>
             </div>
         </section>
     </main>
 
-    <!-- 添加目标弹窗 -->
-    <div id="goal-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden">
-        <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
-            <h3 class="text-xl font-bold mb-4">添加新目标</h3>
-            <form id="goal-form">
+    <!-- 添加目标的模态框 (默认隐藏) -->
+    <div id="add-goal-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4 transform transition-all">
+            <h3 class="text-xl font-bold text-neutral mb-4">添加新目标</h3>
+            <form id="add-goal-form">
                 <div class="mb-4">
-                    <label class="block mb-2">目标名称</label>
-                    <input type="text" id="goal-name" class="w-full p-2 border rounded-lg" required>
+                    <label class="block text-gray-700 mb-2" for="goal-name">目标名称</label>
+                    <input type="text" id="goal-name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="例如：按时起床" required>
                 </div>
                 <div class="mb-4">
-                    <label class="block mb-2">奖励积分</label>
-                    <input type="number" id="goal-points" class="w-full p-2 border rounded-lg" min="1" value="10" required>
+                    <label class="block text-gray-700 mb-2" for="goal-points">奖励积分</label>
+                    <input type="number" id="goal-points" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50" min="1" value="10" required>
                 </div>
-                <div class="flex justify-end gap-3 mt-6">
-                    <button type="button" id="cancel-goal" class="px-4 py-2 border rounded-lg">取消</button>
-                    <button type="submit" class="btn-primary">添加</button>
+                <div class="mb-4">
+                    <label class="block text-gray-700 mb-2">每日签到次数限制</label>
+                    <div class="flex items-center space-x-4">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="checkin-limit" value="once" class="text-primary focus:ring-primary" checked>
+                            <span class="ml-2">每天一次</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="checkin-limit" value="unlimited" class="text-primary focus:ring-primary">
+                            <span class="ml-2">无限制</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" id="cancel-goal-btn" class="px-4 py-2 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors">取消</button>
+                    <button type="submit" class="btn-primary">添加目标</button>
                 </div>
             </form>
         </div>
     </div>
 
+    <!-- 添加奖励的模态框 (默认隐藏) -->
+    <div id="add-reward-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4 transform transition-all">
+            <h3 class="text-xl font-bold text-neutral mb-4">添加新奖励</h3>
+            <form id="add-reward-form">
+                <div class="mb-4">
+                    <label class="block text-gray-700 mb-2" for="reward-name">奖励名称</label>
+                    <input type="text" id="reward-name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary/50" placeholder="例如：一次约会晚餐" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 mb-2" for="reward-cost">所需积分</label>
+                    <input type="number" id="reward-cost" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary/50" min="1" value="100" required>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" id="cancel-reward-btn" class="px-4 py-2 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors">取消</button>
+                    <button type="submit" class="btn-secondary">添加奖励</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 签到成功提示 (默认隐藏) -->
+    <div id="checkin-toast" class="fixed bottom-6 right-6 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center">
+        <i class="fa fa-check-circle mr-2"></i>
+        <span>签到成功！获得 <span id="toast-points">0</span> 积分</span>
+    </div>
+
+    <!-- 兑换成功提示 (默认隐藏) -->
+    <div id="redeem-toast" class="fixed bottom-6 right-6 bg-secondary text-white px-6 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center">
+        <i class="fa fa-gift mr-2"></i>
+        <span>兑换成功！</span>
+    </div>
+
     <script>
-        // 数据存储
-        const state = {
-            goals: [],
-            points: 0
+        // 数据模型
+        const appState = {
+            goals: [],          // 目标列表
+            rewards: [],        // 奖励列表
+            totalPoints: 0,     // 总积分
+            redemptionHistory: [], // 兑换记录
+            lastCheckins: {}    // 上次签到记录，用于限制每日签到
         };
 
-        // DOM元素
-        const el = {
-            goalsList: document.getElementById('goals-list'),
-            totalPoints: document.getElementById('total-points'),
-            goalsArea: document.getElementById('goals-area'),
-            rewardsArea: document.getElementById('rewards-area'),
-            switchToRewards: document.getElementById('switch-to-rewards'),
-            backToGoals: document.getElementById('back-to-goals'),
-            addGoal: document.getElementById('add-goal'),
-            goalModal: document.getElementById('goal-modal'),
-            cancelGoal: document.getElementById('cancel-goal'),
-            goalForm: document.getElementById('goal-form')
+        // DOM 元素
+        const elements = {
+            goalsContainer: document.getElementById('goals-container'),
+            rewardsContainer: document.getElementById('rewards-container'),
+            redemptionHistory: document.getElementById('redemption-history'),
+            totalPointsEl: document.getElementById('total-points'),
+            rewardsPointsEl: document.getElementById('rewards-points'),
+            goalsSection: document.getElementById('goals-section'),
+            rewardsSection: document.getElementById('rewards-section'),
+            switchTabBtn: document.getElementById('switch-tab-btn'),
+            backToGoalsBtn: document.getElementById('back-to-goals-btn'),
+            addGoalBtn: document.getElementById('add-goal-btn'),
+            addRewardBtn: document.getElementById('add-reward-btn'),
+            addGoalModal: document.getElementById('add-goal-modal'),
+            addRewardModal: document.getElementById('add-reward-modal'),
+            cancelGoalBtn: document.getElementById('cancel-goal-btn'),
+            cancelRewardBtn: document.getElementById('cancel-reward-btn'),
+            addGoalForm: document.getElementById('add-goal-form'),
+            addRewardForm: document.getElementById('add-reward-form'),
+            checkinToast: document.getElementById('checkin-toast'),
+            toastPoints: document.getElementById('toast-points'),
+            redeemToast: document.getElementById('redeem-toast')
         };
 
-        // 初始化
-        async function init() {
-            try {
-                // 从Firebase加载数据
-                const doc = await db.collection('appData').doc('coupleGoals').get();
-                if (doc.exists) {
-                    const data = doc.data();
-                    state.goals = data.goals || [];
-                    state.points = data.totalPoints || 0;
-                }
-            } catch (e) {
-                console.log('加载数据失败，使用本地存储');
-                loadLocal();
-            }
+
+        // 初始化应用
+        function initApp() {
+          // 从Firebase加载数据
+          loadFromFirebase().then(() => {
+            // 渲染UI
             renderGoals();
-            updatePoints();
-            bindEvents();
+            renderRewards();
+            renderRedemptionHistory();
+            updatePointsDisplay();
+          });
+          
+          // 绑定事件监听器
+          bindEventListeners();
+        }
+
+        // 从本地存储加载数据
+        async function loadFromFirebase() {
+          try {
+        const doc = await db.collection('appData').doc('coupleGoals').get();
+        if (doc.exists) {
+          const data = doc.data();
+          appState.goals = data.goals || [];
+          appState.rewards = data.rewards || [];
+          appState.totalPoints = data.totalPoints || 0;
+          appState.redemptionHistory = data.redemptionHistory || [];
+          appState.lastCheckins = data.lastCheckins || {};
+        }
+        cleanupOldCheckins();
+              
+  } catch (error) {
+    console.error("加载数据失败:", error);
+    // 如果Firebase加载失败，使用本地存储备份
+    loadFromLocalStorage();
+  }
+}
+
+        // 保存数据到本地存储
+    // 保存数据到Firebase
+    async function saveToFirebase() {
+      try {
+        await db.collection('appData').doc('coupleGoals').set({
+          goals: appState.goals,
+          rewards: appState.rewards,
+          totalPoints: appState.totalPoints,
+          redemptionHistory: appState.redemptionHistory,
+          lastCheckins: appState.lastCheckins
+        });
+
+          
+    // 同时保存到本地作为备份
+    localStorage.setItem('coupleGoalsBackup', JSON.stringify(appState.goals));
+    localStorage.setItem('coupleRewardsBackup', JSON.stringify(appState.rewards));
+    localStorage.setItem('coupleTotalPointsBackup', appState.totalPoints.toString());
+
+
+// 从本地备份加载数据
+function loadFromLocalStorage() {
+  const savedGoals = localStorage.getItem('coupleGoalsBackup');
+  const savedRewards = localStorage.getItem('coupleRewardsBackup');
+  const savedPoints = localStorage.getItem('coupleTotalPointsBackup');
+  
+  if (savedGoals) appState.goals = JSON.parse(savedGoals);
+  if (savedRewards) appState.rewards = JSON.parse(savedRewards);
+  if (savedPoints) appState.totalPoints = parseInt(savedPoints);
+}
+
+// 保存到本地备份
+function saveToLocalStorage() {
+  localStorage.setItem('coupleGoalsBackup', JSON.stringify(appState.goals));
+  localStorage.setItem('coupleRewardsBackup', JSON.stringify(appState.rewards));
+  localStorage.setItem('coupleTotalPointsBackup', appState.totalPoints.toString());
+}
+  } catch (error) {
+    console.error("保存数据失败:", error);
+    // 保存失败时使用本地存储
+    saveToLocalStorage();
+  }
+}
+
+        // 清理过期的签到记录
+        function cleanupOldCheckins() {
+            const today = new Date().toDateString();
+            for (const goalId in appState.lastCheckins) {
+                if (appState.lastCheckins[goalId] !== today) {
+                    delete appState.lastCheckins[goalId];
+                }
+            }
+             saveToFirebase();
         }
 
         // 渲染目标列表
         function renderGoals() {
-            el.goalsList.innerHTML = state.goals.length === 0 
-                ? '<div class="col-span-full p-8 text-center bg-white rounded-xl">暂无目标</div>'
-                : '';
-
-            state.goals.forEach(goal => {
-                const card = document.createElement('div');
-                card.className = 'goal-card';
-                card.innerHTML = `
-                    <h3 class="font-bold text-lg">${goal.name}</h3>
-                    <p class="text-gray-500 mt-2">+${goal.points}积分</p>
-                    <button data-id="${goal.id}" class="checkin-btn w-full mt-4 py-2 bg-primary text-white rounded-lg">
-                        完成签到
+            elements.goalsContainer.innerHTML = '';
+            
+            if (appState.goals.length === 0) {
+                elements.goalsContainer.innerHTML = `
+                    <div class="col-span-full bg-white rounded-xl p-8 text-center card-shadow">
+                        <i class="fa fa-lightbulb-o text-4xl text-yellow-400 mb-4"></i>
+                        <h3 class="text-xl font-medium text-neutral mb-2">还没有设置目标</h3>
+                        <p class="text-gray-500 mb-4">点击"添加目标"按钮开始创建第一个目标吧</p>
+                        <button id="empty-add-goal-btn" class="btn-secondary">
+                            <i class="fa fa-plus mr-1"></i> 添加第一个目标
+                        </button>
+                    </div>
+                `;
+                document.getElementById('empty-add-goal-btn').addEventListener('click', openAddGoalModal);
+                return;
+            }
+            
+            appState.goals.forEach(goal => {
+                const today = new Date().toDateString();
+                const alreadyCheckedIn = appState.lastCheckins[goal.id] === today;
+                const isLimited = goal.checkinLimit === 'once';
+                const isDisabled = isLimited && alreadyCheckedIn;
+                
+                const goalCard = document.createElement('div');
+                goalCard.className = 'goal-card';
+                goalCard.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="font-bold text-lg text-neutral">${goal.name}</h3>
+                        <span class="bg-primary/10 text-primary px-2 py-1 rounded-full text-sm font-medium">
+                            +${goal.points} 积分
+                        </span>
+                    </div>
+                    <p class="text-gray-500 text-sm mb-4">
+                        ${isLimited ? '每日可签到一次' : '每日可多次签到'}
+                    </p>
+                    <button data-goal-id="${goal.id}" class="checkin-btn w-full py-2 rounded-lg font-medium transition-all ${
+                        isDisabled 
+                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
+                            : 'bg-primary text-white hover:bg-primary/90'
+                    }">
+                        ${isDisabled ? 
+                            '<i class="fa fa-check mr-1"></i> 今日已签到' : 
+                            '<i class="fa fa-calendar-check-o mr-1"></i> 完成签到'
+                        }
+                    </button>
+                    <button data-goal-id="${goal.id}" class="delete-goal-btn mt-2 w-full py-1.5 text-gray-500 hover:text-red-500 text-sm transition-colors">
+                        <i class="fa fa-trash-o mr-1"></i> 删除目标
                     </button>
                 `;
-                el.goalsList.appendChild(card);
-                card.querySelector('.checkin-btn').addEventListener('click', () => checkin(goal.id));
+                
+                elements.goalsContainer.appendChild(goalCard);
+                
+                // 添加签到事件监听
+                if (!isDisabled) {
+                    goalCard.querySelector('.checkin-btn').addEventListener('click', () => {
+                        handleCheckin(goal.id);
+                    });
+                }
+                
+                // 添加删除目标事件监听
+                goalCard.querySelector('.delete-goal-btn').addEventListener('click', () => {
+                    if (confirm(`确定要删除目标"${goal.name}"吗？`)) {
+                        deleteGoal(goal.id);
+                    }
+                });
             });
         }
 
-        // 签到功能
-        function checkin(goalId) {
-            const goal = state.goals.find(g => g.id === goalId);
-            if (goal) {
-                state.points += goal.points;
-                saveData();
-                updatePoints();
-                alert(`签到成功，获得${goal.points}积分！`);
+        // 渲染奖励列表
+        function renderRewards() {
+            elements.rewardsContainer.innerHTML = '';
+            
+            if (appState.rewards.length === 0) {
+                elements.rewardsContainer.innerHTML = `
+                    <div class="text-center py-6 text-gray-500">
+                        <i class="fa fa-gift text-3xl mb-2"></i>
+                        <p>还没有设置奖励</p>
+                    </div>
+                `;
+                return;
             }
+            
+            appState.rewards.forEach(reward => {
+                const canRedeem = appState.totalPoints >= reward.cost;
+                
+                const rewardEl = document.createElement('div');
+                rewardEl.className = 'flex justify-between items-center p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors';
+                rewardEl.innerHTML = `
+                    <div>
+                        <h4 class="font-medium text-neutral">${reward.name}</h4>
+                        <p class="text-sm text-gray-500">需要 ${reward.cost} 积分</p>
+                    </div>
+                    <button data-reward-id="${reward.id}" class="redeem-btn px-3 py-1 rounded-lg text-sm font-medium transition-all ${
+                        canRedeem 
+                            ? 'bg-secondary text-white hover:bg-secondary/90' 
+                            : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    }">
+                        兑换
+                    </button>
+                `;
+                
+                elements.rewardsContainer.appendChild(rewardEl);
+                
+                // 添加兑换事件监听
+                if (canRedeem) {
+                    rewardEl.querySelector('.redeem-btn').addEventListener('click', () => {
+                        handleRedeem(reward.id);
+                    });
+                }
+            });
         }
 
-        // 保存数据
-        async function saveData() {
-            try {
-                await db.collection('appData').doc('coupleGoals').set({
-                    goals: state.goals,
-                    totalPoints: state.points
-                });
-                saveLocal(); // 同时保存到本地
-            } catch (e) {
-                console.log('保存失败，使用本地存储');
-                saveLocal();
+        // 渲染兑换记录
+        function renderRedemptionHistory() {
+            elements.redemptionHistory.innerHTML = '';
+            
+            if (appState.redemptionHistory.length === 0) {
+                elements.redemptionHistory.innerHTML = `
+                    <p class="text-gray-500 text-center py-6">暂无兑换记录</p>
+                `;
+                return;
             }
-        }
-
-        // 本地存储备份
-        function saveLocal() {
-            localStorage.setItem('goalsBackup', JSON.stringify(state.goals));
-            localStorage.setItem('pointsBackup', state.points);
-        }
-
-        function loadLocal() {
-            state.goals = JSON.parse(localStorage.getItem('goalsBackup') || '[]');
-            state.points = parseInt(localStorage.getItem('pointsBackup') || '0');
+            
+            // 按时间倒序排列
+            const sortedHistory = [...appState.redemptionHistory].sort((a, b) => b.timestamp - a.timestamp);
+            
+            sortedHistory.forEach(record => {
+                const date = new Date(record.timestamp);
+                const formattedDate = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+                
+                const recordEl = document.createElement('div');
+                recordEl.className = 'flex justify-between items-center p-3 border-b border-gray-100 last:border-0';
+                recordEl.innerHTML = `
+                    <div>
+                        <h4 class="font-medium text-neutral">${record.rewardName}</h4>
+                        <p class="text-sm text-gray-500">兑换于 ${formattedDate}</p>
+                    </div>
+                    <span class="text-red-500 font-medium">-${record.cost} 积分</span>
+                `;
+                
+                elements.redemptionHistory.appendChild(recordEl);
+            });
         }
 
         // 更新积分显示
-        function updatePoints() {
-            el.totalPoints.textContent = state.points;
-            document.getElementById('points-display').textContent = state.points;
+        function updatePointsDisplay() {
+            elements.totalPointsEl.textContent = appState.totalPoints;
+            elements.rewardsPointsEl.textContent = appState.totalPoints;
         }
 
-        // 添加目标
-        function addNewGoal(name, points) {
-            state.goals.push({
+        // 处理签到
+        function handleCheckin(goalId) {
+            const goal = appState.goals.find(g => g.id === goalId);
+            if (!goal) return;
+            
+            // 增加积分
+            appState.totalPoints += goal.points;
+            
+            // 记录签到日期（如果是每日一次的目标）
+            if (goal.checkinLimit === 'once') {
+                appState.lastCheckins[goalId] = new Date().toDateString();
+            }
+            
+            // 保存数据并更新UI
+            saveToFirebase();
+            renderGoals();
+            updatePointsDisplay();
+            
+            // 显示提示
+            showCheckinToast(goal.points);
+        }
+
+        // 处理奖励兑换
+        function handleRedeem(rewardId) {
+            const reward = appState.rewards.find(r => r.id === rewardId);
+            if (!reward || appState.totalPoints < reward.cost) return;
+            
+            // 扣除积分
+            appState.totalPoints -= reward.cost;
+            
+            // 记录兑换历史
+            appState.redemptionHistory.push({
+                id: Date.now().toString(),
+                rewardId: reward.id,
+                rewardName: reward.name,
+                cost: reward.cost,
+                timestamp: Date.now()
+            });
+            
+            // 保存数据并更新UI
+            saveToFirebase();
+            renderRewards();
+            renderRedemptionHistory();
+            updatePointsDisplay();
+            
+            // 显示提示
+            showRedeemToast();
+        }
+
+        // 添加新目标
+        function addGoal(name, points, checkinLimit) {
+            const newGoal = {
                 id: Date.now().toString(),
                 name,
-                points: parseInt(points)
-            });
-            saveData();
+                points: parseInt(points),
+                checkinLimit
+            };
+            
+            appState.goals.push(newGoal);
+            saveToFirebase();
             renderGoals();
         }
 
-        // 绑定事件
-        function bindEvents() {
-            // 切换页面
-            el.switchToRewards.addEventListener('click', () => {
-                el.goalsArea.classList.add('hidden');
-                el.rewardsArea.classList.remove('hidden');
-            });
-            el.backToGoals.addEventListener('click', () => {
-                el.rewardsArea.classList.add('hidden');
-                el.goalsArea.classList.remove('hidden');
-            });
+        // 添加新奖励
+        function addReward(name, cost) {
+            const newReward = {
+                id: Date.now().toString(),
+                name,
+                cost: parseInt(cost)
+            };
+            
+            appState.rewards.push(newReward);
+             saveToFirebase();
+            renderRewards();
+        }
 
-            // 目标弹窗
-            el.addGoal.addEventListener('click', () => el.goalModal.classList.remove('hidden'));
-            el.cancelGoal.addEventListener('click', () => el.goalModal.classList.add('hidden'));
-            el.goalForm.addEventListener('submit', (e) => {
+        // 删除目标
+        function deleteGoal(goalId) {
+            appState.goals = appState.goals.filter(goal => goal.id !== goalId);
+            delete appState.lastCheckins[goalId]; // 同时删除签到记录
+             saveToFirebase();
+            renderGoals();
+        }
+
+        // 显示签到成功提示
+        function showCheckinToast(points) {
+            elements.toastPoints.textContent = points;
+            elements.checkinToast.classList.remove('translate-y-20', 'opacity-0');
+            
+            setTimeout(() => {
+                elements.checkinToast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // 显示兑换成功提示
+        function showRedeemToast() {
+            elements.redeemToast.classList.remove('translate-y-20', 'opacity-0');
+            
+            setTimeout(() => {
+                elements.redeemToast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // 打开添加目标模态框
+        function openAddGoalModal() {
+            elements.addGoalModal.classList.remove('hidden');
+            // 添加动画效果
+            setTimeout(() => {
+                elements.addGoalModal.querySelector('div').classList.add('scale-100');
+                elements.addGoalModal.querySelector('div').classList.remove('scale-95');
+            }, 10);
+        }
+
+        // 关闭添加目标模态框
+        function closeAddGoalModal() {
+            elements.addGoalModal.classList.add('hidden');
+            elements.addGoalForm.reset();
+        }
+
+        // 打开添加奖励模态框
+        function openAddRewardModal() {
+            elements.addRewardModal.classList.remove('hidden');
+            // 添加动画效果
+            setTimeout(() => {
+                elements.addRewardModal.querySelector('div').classList.add('scale-100');
+                elements.addRewardModal.querySelector('div').classList.remove('scale-95');
+            }, 10);
+        }
+
+        // 关闭添加奖励模态框
+        function closeAddRewardModal() {
+            elements.addRewardModal.classList.add('hidden');
+            elements.addRewardForm.reset();
+        }
+
+        // 切换到奖励页面
+        function switchToRewards() {
+            elements.goalsSection.classList.add('hidden');
+            elements.rewardsSection.classList.remove('hidden');
+        }
+
+        // 切换到目标页面
+        function switchToGoals() {
+            elements.rewardsSection.classList.add('hidden');
+            elements.goalsSection.classList.remove('hidden');
+        }
+
+        // 绑定事件监听器
+        function bindEventListeners() {
+            // 页面切换
+            elements.switchTabBtn.addEventListener('click', switchToRewards);
+            elements.backToGoalsBtn.addEventListener('click', switchToGoals);
+            
+            // 添加目标相关
+            elements.addGoalBtn.addEventListener('click', openAddGoalModal);
+            elements.cancelGoalBtn.addEventListener('click', closeAddGoalModal);
+            
+            elements.addGoalForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                addNewGoal(
-                    document.getElementById('goal-name').value,
-                    document.getElementById('goal-points').value
-                );
-                el.goalModal.classList.add('hidden');
-                el.goalForm.reset();
+                const name = document.getElementById('goal-name').value;
+                const points = document.getElementById('goal-points').value;
+                const checkinLimit = document.querySelector('input[name="checkin-limit"]:checked').value;
+                
+                addGoal(name, points, checkinLimit);
+                closeAddGoalModal();
+            });
+            
+            // 添加奖励相关
+            elements.addRewardBtn.addEventListener('click', openAddRewardModal);
+            elements.cancelRewardBtn.addEventListener('click', closeAddRewardModal);
+            
+            elements.addRewardForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const name = document.getElementById('reward-name').value;
+                const cost = document.getElementById('reward-cost').value;
+                
+                addReward(name, cost);
+                closeAddRewardModal();
+            });
+            
+            // 点击模态框外部关闭
+            elements.addGoalModal.addEventListener('click', (e) => {
+                if (e.target === elements.addGoalModal) {
+                    closeAddGoalModal();
+                }
+            });
+            
+            elements.addRewardModal.addEventListener('click', (e) => {
+                if (e.target === elements.addRewardModal) {
+                    closeAddRewardModal();
+                }
             });
         }
 
         // 启动应用
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
 </html>
