@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>南北season与似缘若浠</title>
@@ -23,6 +25,19 @@
             }
         }
     </script>
+    // Firebase 配置 - 替换为你自己的配置信息
+    const firebaseConfig = {
+    apiKey: "AIzaSyC3ZQAKEDGS02vWh1alwTGa1H-zYxJKCIM",
+    authDomain: "fangslove629.firebaseapp.com",
+    projectId: "fangslove629",
+    storageBucket: "fangslove629.firebasestorage.app",
+    messagingSenderId: "203655156804",
+    appId: "1:203655156804:web:7382793487b4534d36d811"
+};
+
+// 初始化Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
     <style type="text/tailwindcss">
         @layer utilities {
             .content-auto {
@@ -232,47 +247,85 @@
             redeemToast: document.getElementById('redeem-toast')
         };
 
+
         // 初始化应用
         function initApp() {
-            // 从本地存储加载数据
-            loadFromLocalStorage();
-            
+          // 从Firebase加载数据
+          loadFromFirebase().then(() => {
             // 渲染UI
             renderGoals();
             renderRewards();
             renderRedemptionHistory();
             updatePointsDisplay();
-            
-            // 绑定事件监听器
-            bindEventListeners();
+          });
+          
+          // 绑定事件监听器
+          bindEventListeners();
         }
 
         // 从本地存储加载数据
-        function loadFromLocalStorage() {
-            const savedGoals = localStorage.getItem('coupleGoals');
-            const savedRewards = localStorage.getItem('coupleRewards');
-            const savedPoints = localStorage.getItem('coupleTotalPoints');
-            const savedHistory = localStorage.getItem('coupleRedemptionHistory');
-            const savedCheckins = localStorage.getItem('coupleLastCheckins');
-            
-            if (savedGoals) appState.goals = JSON.parse(savedGoals);
-            if (savedRewards) appState.rewards = JSON.parse(savedRewards);
-            if (savedPoints) appState.totalPoints = parseInt(savedPoints);
-            if (savedHistory) appState.redemptionHistory = JSON.parse(savedHistory);
-            if (savedCheckins) appState.lastCheckins = JSON.parse(savedCheckins);
-            
-            // 清理过期的签到记录（超过一天的）
-            cleanupOldCheckins();
+        async function loadFromFirebase() {
+          try {
+        const doc = await db.collection('appData').doc('coupleGoals').get();
+        if (doc.exists) {
+          const data = doc.data();
+          appState.goals = data.goals || [];
+          appState.rewards = data.rewards || [];
+          appState.totalPoints = data.totalPoints || 0;
+          appState.redemptionHistory = data.redemptionHistory || [];
+          appState.lastCheckins = data.lastCheckins || {};
         }
+        cleanupOldCheckins();
+              
+  } catch (error) {
+    console.error("加载数据失败:", error);
+    // 如果Firebase加载失败，使用本地存储备份
+    loadFromLocalStorage();
+  }
+}
 
         // 保存数据到本地存储
-        function saveToLocalStorage() {
-            localStorage.setItem('coupleGoals', JSON.stringify(appState.goals));
-            localStorage.setItem('coupleRewards', JSON.stringify(appState.rewards));
-            localStorage.setItem('coupleTotalPoints', appState.totalPoints.toString());
-            localStorage.setItem('coupleRedemptionHistory', JSON.stringify(appState.redemptionHistory));
-            localStorage.setItem('coupleLastCheckins', JSON.stringify(appState.lastCheckins));
-        }
+    // 保存数据到Firebase
+    async function saveToFirebase() {
+      try {
+        await db.collection('appData').doc('coupleGoals').set({
+          goals: appState.goals,
+          rewards: appState.rewards,
+          totalPoints: appState.totalPoints,
+          redemptionHistory: appState.redemptionHistory,
+          lastCheckins: appState.lastCheckins
+        });
+
+          
+    // 同时保存到本地作为备份
+    localStorage.setItem('coupleGoalsBackup', JSON.stringify(appState.goals));
+    localStorage.setItem('coupleRewardsBackup', JSON.stringify(appState.rewards));
+    localStorage.setItem('coupleTotalPointsBackup', appState.totalPoints.toString());
+
+
+// 从本地备份加载数据
+function loadFromLocalStorage() {
+  const savedGoals = localStorage.getItem('coupleGoalsBackup');
+  const savedRewards = localStorage.getItem('coupleRewardsBackup');
+  const savedPoints = localStorage.getItem('coupleTotalPointsBackup');
+  
+  if (savedGoals) appState.goals = JSON.parse(savedGoals);
+  if (savedRewards) appState.rewards = JSON.parse(savedRewards);
+  if (savedPoints) appState.totalPoints = parseInt(savedPoints);
+}
+
+// 保存到本地备份
+function saveToLocalStorage() {
+  localStorage.setItem('coupleGoalsBackup', JSON.stringify(appState.goals));
+  localStorage.setItem('coupleRewardsBackup', JSON.stringify(appState.rewards));
+  localStorage.setItem('coupleTotalPointsBackup', appState.totalPoints.toString());
+}
+  } catch (error) {
+    console.error("保存数据失败:", error);
+    // 保存失败时使用本地存储
+    saveToLocalStorage();
+  }
+}
 
         // 清理过期的签到记录
         function cleanupOldCheckins() {
@@ -282,7 +335,7 @@
                     delete appState.lastCheckins[goalId];
                 }
             }
-            saveToLocalStorage();
+             saveToFirebase();
         }
 
         // 渲染目标列表
@@ -451,7 +504,7 @@
             }
             
             // 保存数据并更新UI
-            saveToLocalStorage();
+            saveToFirebase();
             renderGoals();
             updatePointsDisplay();
             
@@ -477,7 +530,7 @@
             });
             
             // 保存数据并更新UI
-            saveToLocalStorage();
+            saveToFirebase();
             renderRewards();
             renderRedemptionHistory();
             updatePointsDisplay();
@@ -496,7 +549,7 @@
             };
             
             appState.goals.push(newGoal);
-            saveToLocalStorage();
+            saveToFirebase();
             renderGoals();
         }
 
@@ -509,7 +562,7 @@
             };
             
             appState.rewards.push(newReward);
-            saveToLocalStorage();
+             saveToFirebase();
             renderRewards();
         }
 
@@ -517,7 +570,7 @@
         function deleteGoal(goalId) {
             appState.goals = appState.goals.filter(goal => goal.id !== goalId);
             delete appState.lastCheckins[goalId]; // 同时删除签到记录
-            saveToLocalStorage();
+             saveToFirebase();
             renderGoals();
         }
 
