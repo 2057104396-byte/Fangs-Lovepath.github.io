@@ -4,15 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>南北season与似缘若浠</title>
-    <!-- 1. 引入兼容模式的Firebase SDK（关键修复） -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/compat/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/compat/firebase-firestore.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 1. 引入模块化Firebase SDK (最新稳定版) -->
+    <script type="module">
+        // 从CDN导入所需的Firebase模块
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+        import { 
+            getFirestore, 
+            doc, 
+            getDoc, 
+            setDoc,
+            getDocFromCache,
+            getDocFromServer
+        } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
-    <!-- 2. Firebase初始化（确保在单独<script>标签中） -->
-    <script>
-        // Firebase配置（保持你的原配置）
+        // 2. Firebase配置 (替换为你的项目配置)
         const firebaseConfig = {
             apiKey: "AIzaSyC3ZQAKEDGS02vWh1alwTGa1H-zYxJKCIM",
             authDomain: "fangslove629.firebaseapp.com",
@@ -22,13 +27,20 @@
             appId: "1:203655156804:web:7382793487b4534d36d811"
         };
 
-        // 初始化Firebase（兼容模式下使用全局firebase变量）
-        firebase.initializeApp(firebaseConfig);
-        // 初始化数据库（全局db变量，供后续使用）
-        const db = firebase.firestore();
+        // 3. 初始化Firebase并暴露给全局
+        window.firebaseApp = initializeApp(firebaseConfig);
+        window.db = getFirestore(window.firebaseApp);
+        
+        // 测试Firebase是否加载成功
+        console.log("Firebase模块化加载成功");
+        console.log("数据库实例:", window.db);
     </script>
 
-    <!-- 3. Tailwind配置 -->
+    <!-- 其他资源 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+    <!-- Tailwind配置 -->
     <script>
         tailwind.config = {
             theme: {
@@ -47,7 +59,7 @@
         }
     </script>
 
-    <!-- 4. Tailwind自定义工具类 -->
+    <!-- Tailwind自定义工具类 -->
     <style type="text/tailwindcss">
         @layer utilities {
             .content-auto {
@@ -223,8 +235,17 @@
         <span>兑换成功！</span>
     </div>
 
-    <!-- 5. 核心业务逻辑 -->
-    <script>
+    <!-- 核心业务逻辑 (使用模块化Firebase语法) -->
+    <script type="module">
+        // 从全局导入Firebase模块和数据库实例
+        const { db } = window;
+        import { 
+            doc, 
+            getDoc, 
+            setDoc,
+            getDocFromServer
+        } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
+
         // 数据模型
         const appState = {
             goals: [],          // 目标列表
@@ -282,17 +303,17 @@
             localStorage.setItem('coupleLastCheckinsBackup', JSON.stringify(appState.lastCheckins));
         }
 
-        // 从Firebase加载数据
+        // 从Firebase加载数据 (模块化语法)
         async function loadFromFirebase(forceRefresh = false) {
             try {
-                const docRef = db.collection('appData').doc('coupleGoals');
-                // 强制从服务器加载，避免缓存
-                const doc = forceRefresh 
-                    ? await docRef.get({ source: 'server' }) 
-                    : await docRef.get();
+                // 明确指定文档路径
+                const docRef = doc(db, 'appData', 'coupleGoals');
+                const docSnap = forceRefresh 
+                    ? await getDocFromServer(docRef)  // 强制从服务器加载
+                    : await getDoc(docRef);
                 
-                if (doc.exists) {
-                    const data = doc.data();
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
                     appState.goals = data.goals || [];
                     appState.rewards = data.rewards || [];
                     appState.totalPoints = data.totalPoints || 0;
@@ -301,8 +322,8 @@
                     console.log("✅ 数据已从Firebase同步");
                 } else {
                     console.log("⚠️ Firebase中暂无数据，初始化空文档");
-                    // 主动创建空文档，避免后续写入失败
-                    await docRef.set({
+                    // 创建空文档
+                    await setDoc(docRef, {
                         goals: [],
                         rewards: [],
                         totalPoints: 0,
@@ -313,15 +334,16 @@
                 cleanupOldCheckins();
             } catch (error) {
                 console.error("❌ Firebase加载失败:", error);
-                throw error; // 抛出错误，让initApp处理
+                throw error;
             }
         }
 
-        // 保存数据到Firebase
+        // 保存数据到Firebase (模块化语法)
         async function saveToFirebase() {
             try {
                 console.log("🔄 开始保存到Firebase");
-                await db.collection('appData').doc('coupleGoals').set({
+                const docRef = doc(db, 'appData', 'coupleGoals');
+                await setDoc(docRef, {
                     goals: appState.goals,
                     rewards: appState.rewards,
                     totalPoints: appState.totalPoints,
@@ -329,10 +351,10 @@
                     lastCheckins: appState.lastCheckins
                 });
                 console.log("✅ Firebase保存成功");
-                saveToLocalStorage(); // 同步到本地备份
+                saveToLocalStorage();
             } catch (error) {
                 console.error("❌ Firebase保存失败:", error);
-                saveToLocalStorage(); // 失败时至少保存到本地
+                saveToLocalStorage();
             }
         }
 
@@ -697,24 +719,31 @@
             });
         }
 
-        // 初始化应用
+        // 初始化应用 (确保Firebase加载完成)
         function initApp() {
-            // 优先从Firebase加载，强制刷新避免缓存
-            loadFromFirebase(true).then(() => {
-                renderGoals();
-                renderRewards();
-                renderRedemptionHistory();
-                updatePointsDisplay();
-            }).catch(err => {
-                console.error('❌ 初始化失败，使用本地数据:', err);
-                loadFromLocalStorage();
-                renderGoals();
-                renderRewards();
-                renderRedemptionHistory();
-                updatePointsDisplay();
-            });
-            
-            bindEventListeners();
+            // 等待Firebase初始化完成
+            if (window.db) {
+                console.log("Firebase已准备就绪");
+                // 从Firebase加载数据
+                loadFromFirebase(true).then(() => {
+                    renderGoals();
+                    renderRewards();
+                    renderRedemptionHistory();
+                    updatePointsDisplay();
+                }).catch(err => {
+                    console.error('❌ 初始化失败，使用本地数据:', err);
+                    loadFromLocalStorage();
+                    renderGoals();
+                    renderRewards();
+                    renderRedemptionHistory();
+                    updatePointsDisplay();
+                });
+                bindEventListeners();
+            } else {
+                // 如果未加载完成，1秒后重试
+                console.log("等待Firebase加载...");
+                setTimeout(initApp, 1000);
+            }
         }
 
         // 启动应用
