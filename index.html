@@ -119,6 +119,19 @@
             <div id="goals-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <!-- 目标卡片将通过JavaScript动态生成 -->
             </div>
+
+            <!-- 扣分项目区域（新增） -->
+            <div class="mt-10">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-neutral">扣分项目</h2>
+                    <button id="add-penalty-btn" class="bg-red-500 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500/50">
+                        <i class="fa fa-minus mr-1"></i> 添加扣分项目
+                    </button>
+                </div>
+                <div id="penalties-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- 扣分项目卡片将动态生成 -->
+                </div>
+            </div>
         </section>
 
         <!-- 奖励兑换区域 (默认隐藏) -->
@@ -128,6 +141,15 @@
                 <button id="back-to-goals-btn" class="btn-primary">
                     <i class="fa fa-arrow-left mr-1"></i> 返回目标
                 </button>
+            </div>
+            
+            <!-- 我的券包区域（新增） -->
+            <div class="mb-6 bg-white rounded-xl p-6 card-shadow">
+                <h3 class="text-xl font-semibold mb-4 text-neutral">我的券包</h3>
+                <div id="coupons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- 券卡片将动态生成 -->
+                    <p id="empty-coupons" class="col-span-full text-gray-500 text-center py-6">暂无未使用的券</p>
+                </div>
             </div>
             
             <div class="flex flex-col md:flex-row gap-6">
@@ -163,6 +185,22 @@
                 <div id="redemption-history" class="space-y-3">
                     <!-- 兑换记录将通过JavaScript动态生成 -->
                     <p class="text-gray-500 text-center py-6">暂无兑换记录</p>
+                </div>
+            </div>
+
+            <!-- 使用记录区域（新增） -->
+            <div class="mt-8">
+                <h3 class="text-xl font-semibold mb-4 text-neutral">券使用记录</h3>
+                <div id="usage-history" class="space-y-3">
+                    <p class="text-gray-500 text-center py-6">暂无券使用记录</p>
+                </div>
+            </div>
+
+            <!-- 扣分记录区域（新增） -->
+            <div class="mt-8">
+                <h3 class="text-xl font-semibold mb-4 text-neutral">扣分记录</h3>
+                <div id="penalty-history" class="space-y-3">
+                    <p class="text-gray-500 text-center py-6">暂无扣分记录</p>
                 </div>
             </div>
         </section>
@@ -223,6 +261,67 @@
         </div>
     </div>
 
+    <!-- 添加扣分项目的模态框 (默认隐藏) -->
+    <div id="add-penalty-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4 transform transition-all">
+            <h3 class="text-xl font-bold text-neutral mb-4">添加扣分项目</h3>
+            <form id="add-penalty-form">
+                <div class="mb-4">
+                    <label class="block text-gray-700 mb-2" for="penalty-name">项目名称</label>
+                    <input type="text" id="penalty-name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/50" placeholder="例如：熬夜超过12点" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 mb-2" for="penalty-points">扣分数额</label>
+                    <input type="number" id="penalty-points" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/50" min="1" value="10" required>
+                    <p class="text-sm text-gray-500 mt-1">输入正整数，系统将自动转为扣分（如输入10则扣10分）</p>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 mb-2">每日记录次数限制</label>
+                    <div class="flex items-center space-x-4">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="penalty-limit" value="once" class="text-red-500 focus:ring-red-500" checked>
+                            <span class="ml-2">每天一次</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="penalty-limit" value="unlimited" class="text-red-500 focus:ring-red-500">
+                            <span class="ml-2">无限制</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" id="cancel-penalty-btn" class="px-4 py-2 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors">取消</button>
+                    <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500/50">添加扣分项目</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 使用券确认模态框 (默认隐藏) -->
+    <div id="use-coupon-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+            <h3 class="text-xl font-bold text-neutral mb-4">确认使用券</h3>
+            <p class="text-gray-600 mb-6">你确定要使用「<span id="use-coupon-name" class="font-medium text-secondary"></span>」券吗？使用后券将失效。</p>
+            <input type="hidden" id="current-coupon-id">
+            <div class="flex justify-end space-x-3">
+                <button type="button" id="cancel-use-coupon-btn" class="px-4 py-2 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors">取消</button>
+                <button type="button" id="confirm-use-coupon-btn" class="btn-secondary">确认使用</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除奖励确认模态框 (新增) -->
+    <div id="delete-reward-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+            <h3 class="text-xl font-bold text-neutral mb-4">确认删除奖励</h3>
+            <p class="text-gray-600 mb-6">你确定要删除「<span id="delete-reward-name" class="font-medium text-secondary"></span>」吗？已兑换的券不受影响。</p>
+            <input type="hidden" id="current-reward-id">
+            <div class="flex justify-end space-x-3">
+                <button type="button" id="cancel-delete-reward-btn" class="px-4 py-2 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors">取消</button>
+                <button type="button" id="confirm-delete-reward-btn" class="bg-red-500 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500/50">确认删除</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 签到成功提示 (默认隐藏) -->
     <div id="checkin-toast" class="fixed bottom-6 right-6 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center">
         <i class="fa fa-check-circle mr-2"></i>
@@ -248,11 +347,16 @@
 
         // 数据模型
         const appState = {
-            goals: [],          // 目标列表
+            goals: [],          // 加分目标列表
+            penalties: [],      // 扣分项目列表（新增）
             rewards: [],        // 奖励列表
+            coupons: [],        // 我的券包（新增：兑换后生成券，使用后消失）
             totalPoints: 0,     // 总积分
-            redemptionHistory: [], // 兑换记录
-            lastCheckins: {}    // 上次签到记录，用于限制每日签到
+            redemptionHistory: [], // 兑换记录（仅记录“生成券”的行为）
+            usageHistory: [],   // 券使用记录（新增：记录“使用券”的行为）
+            penaltyHistory: [], // 扣分记录（新增：记录“扣分项目”的签到）
+            lastCheckins: {},   // 上次签到记录（加分目标）
+            lastPenaltyCheckins: {} // 上次扣分签到记录（新增：控制扣分项目每日限制）
         };
 
         // DOM 元素
@@ -276,7 +380,30 @@
             addRewardForm: document.getElementById('add-reward-form'),
             checkinToast: document.getElementById('checkin-toast'),
             toastPoints: document.getElementById('toast-points'),
-            redeemToast: document.getElementById('redeem-toast')
+            redeemToast: document.getElementById('redeem-toast'),
+            // 扣分项目相关
+            penaltiesContainer: document.getElementById('penalties-container'),
+            addPenaltyBtn: document.getElementById('add-penalty-btn'),
+            addPenaltyModal: document.getElementById('add-penalty-modal'),
+            cancelPenaltyBtn: document.getElementById('cancel-penalty-btn'),
+            addPenaltyForm: document.getElementById('add-penalty-form'),
+            penaltyHistory: document.getElementById('penalty-history'),
+            // 券包相关
+            couponsContainer: document.getElementById('coupons-container'),
+            emptyCoupons: document.getElementById('empty-coupons'),
+            usageHistory: document.getElementById('usage-history'),
+            // 使用券模态框
+            useCouponModal: document.getElementById('use-coupon-modal'),
+            useCouponName: document.getElementById('use-coupon-name'),
+            currentCouponId: document.getElementById('current-coupon-id'),
+            cancelUseCouponBtn: document.getElementById('cancel-use-coupon-btn'),
+            confirmUseCouponBtn: document.getElementById('confirm-use-coupon-btn'),
+            // 删除奖励相关（新增）
+            deleteRewardModal: document.getElementById('delete-reward-modal'),
+            deleteRewardName: document.getElementById('delete-reward-name'),
+            currentRewardId: document.getElementById('current-reward-id'),
+            cancelDeleteRewardBtn: document.getElementById('cancel-delete-reward-btn'),
+            confirmDeleteRewardBtn: document.getElementById('confirm-delete-reward-btn')
         };
 
         // 从本地备份加载数据
@@ -286,12 +413,23 @@
             const savedPoints = localStorage.getItem('coupleTotalPointsBackup');
             const savedHistory = localStorage.getItem('coupleRedemptionHistoryBackup');
             const savedCheckins = localStorage.getItem('coupleLastCheckinsBackup');
+            // 新增字段加载
+            const savedCoupons = localStorage.getItem('coupleCouponsBackup');
+            const savedPenalties = localStorage.getItem('couplePenaltiesBackup');
+            const savedPenaltyHistory = localStorage.getItem('couplePenaltyHistoryBackup');
+            const savedUsageHistory = localStorage.getItem('coupleUsageHistoryBackup');
+            const savedLastPenaltyCheckins = localStorage.getItem('coupleLastCheckinsBackup');
             
             if (savedGoals) appState.goals = JSON.parse(savedGoals);
             if (savedRewards) appState.rewards = JSON.parse(savedRewards);
             if (savedPoints) appState.totalPoints = parseInt(savedPoints);
             if (savedHistory) appState.redemptionHistory = JSON.parse(savedHistory);
             if (savedCheckins) appState.lastCheckins = JSON.parse(savedCheckins);
+            if (savedCoupons) appState.coupons = JSON.parse(savedCoupons);
+            if (savedPenalties) appState.penalties = JSON.parse(savedPenalties);
+            if (savedPenaltyHistory) appState.penaltyHistory = JSON.parse(savedPenaltyHistory);
+            if (savedUsageHistory) appState.usageHistory = JSON.parse(savedUsageHistory);
+            if (savedLastPenaltyCheckins) appState.lastPenaltyCheckins = JSON.parse(savedLastPenaltyCheckins);
         }
 
         // 保存到本地备份
@@ -301,6 +439,12 @@
             localStorage.setItem('coupleTotalPointsBackup', appState.totalPoints.toString());
             localStorage.setItem('coupleRedemptionHistoryBackup', JSON.stringify(appState.redemptionHistory));
             localStorage.setItem('coupleLastCheckinsBackup', JSON.stringify(appState.lastCheckins));
+            // 新增字段本地存储
+            localStorage.setItem('coupleCouponsBackup', JSON.stringify(appState.coupons));
+            localStorage.setItem('couplePenaltiesBackup', JSON.stringify(appState.penalties));
+            localStorage.setItem('couplePenaltyHistoryBackup', JSON.stringify(appState.penaltyHistory));
+            localStorage.setItem('coupleUsageHistoryBackup', JSON.stringify(appState.usageHistory));
+            localStorage.setItem('coupleLastPenaltyCheckinsBackup', JSON.stringify(appState.lastPenaltyCheckins));
         }
 
         // 从Firebase加载数据 (模块化语法)
@@ -319,19 +463,32 @@
                     appState.totalPoints = data.totalPoints || 0;
                     appState.redemptionHistory = data.redemptionHistory || [];
                     appState.lastCheckins = data.lastCheckins || {};
-                    console.log("✅ 数据已从Firebase同步");
+                    // 新增字段加载
+                    appState.coupons = data.coupons || [];
+                    appState.penalties = data.penalties || [];
+                    appState.penaltyHistory = data.penaltyHistory || [];
+                    appState.usageHistory = data.usageHistory || [];
+                    appState.lastPenaltyCheckins = data.lastPenaltyCheckins || {};
+                    console.log("✅ 数据已从Firebase同步（含券和扣分）");
                 } else {
-                    console.log("⚠️ Firebase中暂无数据，初始化空文档");
+                    console.log("⚠️ Firebase中暂无数据，初始化空文档（含券和扣分）");
                     // 创建空文档
                     await setDoc(docRef, {
                         goals: [],
                         rewards: [],
                         totalPoints: 0,
                         redemptionHistory: [],
-                        lastCheckins: {}
+                        lastCheckins: {},
+                        // 新增字段初始化
+                        coupons: [],
+                        penalties: [],
+                        penaltyHistory: [],
+                        usageHistory: [],
+                        lastPenaltyCheckins: {}
                     });
                 }
                 cleanupOldCheckins();
+                cleanupOldPenaltyCheckins(); // 新增：清理过期扣分签到
             } catch (error) {
                 console.error("❌ Firebase加载失败:", error);
                 throw error;
@@ -341,16 +498,22 @@
         // 保存数据到Firebase (模块化语法)
         async function saveToFirebase() {
             try {
-                console.log("🔄 开始保存到Firebase");
+                console.log("🔄 开始保存到Firebase（含券和扣分）");
                 const docRef = doc(db, 'appData', 'coupleGoals');
                 await setDoc(docRef, {
                     goals: appState.goals,
                     rewards: appState.rewards,
                     totalPoints: appState.totalPoints,
                     redemptionHistory: appState.redemptionHistory,
-                    lastCheckins: appState.lastCheckins
+                    lastCheckins: appState.lastCheckins,
+                    // 新增字段保存
+                    coupons: appState.coupons,
+                    penalties: appState.penalties,
+                    penaltyHistory: appState.penaltyHistory,
+                    usageHistory: appState.usageHistory,
+                    lastPenaltyCheckins: appState.lastPenaltyCheckins
                 });
-                console.log("✅ Firebase保存成功");
+                console.log("✅ Firebase保存成功（含券和扣分）");
                 saveToLocalStorage();
             } catch (error) {
                 console.error("❌ Firebase保存失败:", error);
@@ -364,6 +527,17 @@
             for (const goalId in appState.lastCheckins) {
                 if (appState.lastCheckins[goalId] !== today) {
                     delete appState.lastCheckins[goalId];
+                }
+            }
+            saveToFirebase();
+        }
+
+        // 新增：清理过期的扣分签到记录
+        function cleanupOldPenaltyCheckins() {
+            const today = new Date().toDateString();
+            for (const penaltyId in appState.lastPenaltyCheckins) {
+                if (appState.lastPenaltyCheckins[penaltyId] !== today) {
+                    delete appState.lastPenaltyCheckins[penaltyId];
                 }
             }
             saveToFirebase();
@@ -391,6 +565,35 @@
                     modalContent.classList.remove('scale-95');
                 }
             }, 10);
+        }
+
+        // 打开添加扣分项目模态框（新增）
+        function openAddPenaltyModal() {
+            const { addPenaltyModal } = elements;
+            addPenaltyModal.classList.remove('hidden');
+            setTimeout(() => {
+                const modalContent = addPenaltyModal.querySelector('div');
+                if (modalContent) {
+                    modalContent.classList.add('scale-100');
+                    modalContent.classList.remove('scale-95');
+                }
+            }, 10);
+        }
+
+        // 打开使用券模态框（新增）
+        function openUseCouponModal(couponId, rewardName) {
+            const { useCouponModal, useCouponName, currentCouponId } = elements;
+            useCouponModal.classList.remove('hidden');
+            useCouponName.textContent = rewardName;
+            currentCouponId.value = couponId;
+        }
+
+        // 打开删除奖励模态框（新增）
+        function openDeleteRewardModal(rewardId, rewardName) {
+            const { deleteRewardModal, deleteRewardName, currentRewardId } = elements;
+            deleteRewardModal.classList.remove('hidden');
+            deleteRewardName.textContent = rewardName;
+            currentRewardId.value = rewardId;
         }
 
         // 渲染目标列表
@@ -463,7 +666,78 @@
             });
         }
 
-        // 渲染奖励列表
+        // 渲染扣分项目（新增）
+        function renderPenalties() {
+            const { penaltiesContainer } = elements;
+            penaltiesContainer.innerHTML = '';
+            
+            if (appState.penalties.length === 0) {
+                penaltiesContainer.innerHTML = `
+                    <div class="col-span-full bg-white rounded-xl p-8 text-center card-shadow">
+                        <i class="fa fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+                        <h3 class="text-xl font-medium text-neutral mb-2">还没有设置扣分项目</h3>
+                        <p class="text-gray-500 mb-4">点击"添加扣分项目"按钮开始创建</p>
+                        <button id="empty-add-penalty-btn" class="bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600">
+                            <i class="fa fa-minus mr-1"></i> 添加第一个扣分项目
+                        </button>
+                    </div>
+                `;
+                document.getElementById('empty-add-penalty-btn').addEventListener('click', openAddPenaltyModal);
+                return;
+            }
+            
+            appState.penalties.forEach(penalty => {
+                const today = new Date().toDateString();
+                const alreadyCheckedIn = appState.lastPenaltyCheckins[penalty.id] === today;
+                const isLimited = penalty.checkinLimit === 'once';
+                const isDisabled = isLimited && alreadyCheckedIn;
+                
+                const penaltyCard = document.createElement('div');
+                penaltyCard.className = 'goal-card border-l-4 border-red-500'; // 红色边框区分扣分
+                penaltyCard.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="font-bold text-lg text-neutral">${penalty.name}</h3>
+                        <span class="bg-red-100 text-red-500 px-2 py-1 rounded-full text-sm font-medium">
+                            -${Math.abs(penalty.points)} 积分
+                        </span>
+                    </div>
+                    <p class="text-gray-500 text-sm mb-4">
+                        ${isLimited ? '每日可记录一次' : '每日可多次记录'}
+                    </p>
+                    <button data-penalty-id="${penalty.id}" class="penalty-checkin-btn w-full py-2 rounded-lg font-medium transition-all ${
+                        isDisabled 
+                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
+                            : 'bg-red-500 text-white hover:bg-red-600'
+                    }">
+                        ${isDisabled ? 
+                            '<i class="fa fa-check mr-1"></i> 今日已记录' : 
+                            '<i class="fa fa-calendar-times-o mr-1"></i> 记录扣分'
+                        }
+                    </button>
+                    <button data-penalty-id="${penalty.id}" class="delete-penalty-btn mt-2 w-full py-1.5 text-gray-500 hover:text-red-500 text-sm transition-colors">
+                        <i class="fa fa-trash-o mr-1"></i> 删除项目
+                    </button>
+                `;
+                
+                penaltiesContainer.appendChild(penaltyCard);
+                
+                // 绑定扣分记录事件
+                if (!isDisabled) {
+                    penaltyCard.querySelector('.penalty-checkin-btn').addEventListener('click', () => {
+                        handlePenaltyCheckin(penalty.id);
+                    });
+                }
+                
+                // 绑定删除扣分项目事件
+                penaltyCard.querySelector('.delete-penalty-btn').addEventListener('click', () => {
+                    if (confirm(`确定要删除扣分项目"${penalty.name}"吗？`)) {
+                        deletePenalty(penalty.id);
+                    }
+                });
+            });
+        }
+
+        // 渲染奖励列表（添加删除按钮）
         function renderRewards() {
             elements.rewardsContainer.innerHTML = '';
             
@@ -487,13 +761,18 @@
                         <h4 class="font-medium text-neutral">${reward.name}</h4>
                         <p class="text-sm text-gray-500">需要 ${reward.cost} 积分</p>
                     </div>
-                    <button data-reward-id="${reward.id}" class="redeem-btn px-3 py-1 rounded-lg text-sm font-medium transition-all ${
-                        canRedeem 
-                            ? 'bg-secondary text-white hover:bg-secondary/90' 
-                            : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                    }">
-                        兑换
-                    </button>
+                    <div class="flex items-center space-x-2">
+                        <button data-reward-id="${reward.id}" class="redeem-btn px-3 py-1 rounded-lg text-sm font-medium transition-all ${
+                            canRedeem 
+                                ? 'bg-secondary text-white hover:bg-secondary/90' 
+                                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                        }">
+                            兑换
+                        </button>
+                        <button data-reward-id="${reward.id}" class="delete-reward-btn p-1.5 text-gray-400 hover:text-red-500 transition-colors">
+                            <i class="fa fa-trash-o"></i>
+                        </button>
+                    </div>
                 `;
                 
                 elements.rewardsContainer.appendChild(rewardEl);
@@ -504,38 +783,162 @@
                         handleRedeem(reward.id);
                     });
                 }
+                
+                // 绑定删除奖励事件（新增）
+                rewardEl.querySelector('.delete-reward-btn').addEventListener('click', () => {
+                    openDeleteRewardModal(reward.id, reward.name);
+                });
             });
         }
 
-        // 渲染兑换记录
-        function renderRedemptionHistory() {
-            elements.redemptionHistory.innerHTML = '';
+        // 渲染我的券包（新增）
+        function renderCoupons() {
+            const { couponsContainer, emptyCoupons } = elements;
+            couponsContainer.innerHTML = '';
             
-            if (appState.redemptionHistory.length === 0) {
-                elements.redemptionHistory.innerHTML = `
-                    <p class="text-gray-500 text-center py-6">暂无兑换记录</p>
+            // 筛选未使用的券
+            const unusedCoupons = appState.coupons.filter(coupon => coupon.status === 'unused');
+            
+            if (unusedCoupons.length === 0) {
+                emptyCoupons.classList.remove('hidden');
+                return;
+            }
+            
+            emptyCoupons.classList.add('hidden');
+            
+            unusedCoupons.forEach(coupon => {
+                // 格式化日期
+                const createDate = new Date(coupon.createTime);
+                const formattedDate = `${createDate.getFullYear()}-${(createDate.getMonth()+1).toString().padStart(2, '0')}-${createDate.getDate().toString().padStart(2, '0')}`;
+                
+                const couponCard = document.createElement('div');
+                couponCard.className = 'bg-white rounded-xl p-4 border border-secondary/30 shadow-sm hover:shadow-md transition-shadow';
+                couponCard.innerHTML = `
+                  <div class="flex justify-between items-start mb-2">
+                    <h4 class="font-bold text-lg text-secondary">${coupon.rewardName}</h4>
+                    <span class="bg-secondary/10 text-secondary px-2 py-0.5 rounded text-xs font-medium">
+                      未使用
+                    </span>
+                  </div>
+                  <p class="text-sm text-gray-500 mb-1">兑换时间: ${formattedDate}</p>
+                  <p class="text-sm text-gray-500 mb-3">消耗积分: ${coupon.cost} 分</p>
+                  <button data-coupon-id="${coupon.id}" class="use-coupon-btn w-full py-2 bg-secondary text-white rounded-lg text-sm font-medium hover:bg-secondary/90 transition-colors">
+                    <i class="fa fa-ticket mr-1"></i> 立即使用
+                  </button>
+                `;
+                
+                couponsContainer.appendChild(couponCard);
+                
+                // 绑定使用券事件
+                couponCard.querySelector('.use-coupon-btn').addEventListener('click', () => {
+                    openUseCouponModal(coupon.id, coupon.rewardName);
+                });
+            });
+        }
+
+        // 渲染兑换记录（修改原有逻辑，只显示兑换未使用的记录）
+        function renderRedemptionHistory() {
+            const { redemptionHistory } = elements;
+            redemptionHistory.innerHTML = '';
+            
+            // 筛选已兑换但未使用的记录（对应未使用的券）
+            const activeRedemptions = appState.coupons.filter(coupon => coupon.status === 'unused').map(coupon => ({
+                rewardName: coupon.rewardName,
+                cost: coupon.cost,
+                createTime: coupon.createTime
+            }));
+            
+            if (activeRedemptions.length === 0) {
+                redemptionHistory.innerHTML = `
+                    <p class="text-gray-500 text-center py-6">暂无已兑换未使用的券</p>
                 `;
                 return;
             }
             
             // 按时间倒序排列
-            const sortedHistory = [...appState.redemptionHistory].sort((a, b) => b.timestamp - a.timestamp);
+            const sortedHistory = [...activeRedemptions].sort((a, b) => b.createTime - a.createTime);
             
             sortedHistory.forEach(record => {
-                const date = new Date(record.timestamp);
-                const formattedDate = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+                const createDate = new Date(record.createTime);
+                const formattedDate = `${createDate.getFullYear()}-${(createDate.getMonth()+1).toString().padStart(2, '0')}-${createDate.getDate().toString().padStart(2, '0')}`;
                 
                 const recordEl = document.createElement('div');
                 recordEl.className = 'flex justify-between items-center p-3 border-b border-gray-100 last:border-0';
                 recordEl.innerHTML = `
                     <div>
                         <h4 class="font-medium text-neutral">${record.rewardName}</h4>
-                        <p class="text-sm text-gray-500">兑换于 ${formattedDate}</p>
+                        <p class="text-sm text-gray-500">兑换时间: ${formattedDate}</p>
                     </div>
-                    <span class="text-red-500 font-medium">-${record.cost} 积分</span>
+                    <span class="text-yellow-500 font-medium">${record.cost} 积分</span>
                 `;
                 
-                elements.redemptionHistory.appendChild(recordEl);
+                redemptionHistory.appendChild(recordEl);
+            });
+        }
+
+        // 渲染券使用记录（新增）
+        function renderUsageHistory() {
+            const { usageHistory } = elements;
+            usageHistory.innerHTML = '';
+            
+            if (appState.usageHistory.length === 0) {
+                usageHistory.innerHTML = `
+                    <p class="text-gray-500 text-center py-6">暂无券使用记录</p>
+                `;
+                return;
+            }
+            
+            // 按时间倒序排列
+            const sortedHistory = [...appState.usageHistory].sort((a, b) => b.useTime - a.useTime);
+            
+            sortedHistory.forEach(record => {
+                const useDate = new Date(record.useTime);
+                const formattedDate = `${useDate.getFullYear()}-${(useDate.getMonth()+1).toString().padStart(2, '0')}-${useDate.getDate().toString().padStart(2, '0')} ${useDate.getHours().toString().padStart(2, '0')}:${useDate.getMinutes().toString().padStart(2, '0')}`;
+                
+                const recordEl = document.createElement('div');
+                recordEl.className = 'flex justify-between items-center p-3 border-b border-gray-100 last:border-0';
+                recordEl.innerHTML = `
+                    <div>
+                        <h4 class="font-medium text-neutral">${record.rewardName}</h4>
+                        <p class="text-sm text-gray-500">使用时间: ${formattedDate}</p>
+                    </div>
+                    <span class="text-green-500 font-medium">已使用</span>
+                `;
+                
+                usageHistory.appendChild(recordEl);
+            });
+        }
+
+        // 渲染扣分记录（新增）
+        function renderPenaltyHistory() {
+            const { penaltyHistory } = elements;
+            penaltyHistory.innerHTML = '';
+            
+            if (appState.penaltyHistory.length === 0) {
+                penaltyHistory.innerHTML = `
+                    <p class="text-gray-500 text-center py-6">暂无扣分记录</p>
+                `;
+                return;
+            }
+            
+            // 按时间倒序排列
+            const sortedHistory = [...appState.penaltyHistory].sort((a, b) => b.timestamp - a.timestamp);
+            
+            sortedHistory.forEach(record => {
+                const recordDate = new Date(record.timestamp);
+                const formattedDate = `${recordDate.getFullYear()}-${(recordDate.getMonth()+1).toString().padStart(2, '0')}-${recordDate.getDate().toString().padStart(2, '0')} ${recordDate.getHours().toString().padStart(2, '0')}:${recordDate.getMinutes().toString().padStart(2, '0')}`;
+                
+                const recordEl = document.createElement('div');
+                recordEl.className = 'flex justify-between items-center p-3 border-b border-gray-100 last:border-0';
+                recordEl.innerHTML = `
+                    <div>
+                        <h4 class="font-medium text-neutral">${record.penaltyName}</h4>
+                        <p class="text-sm text-gray-500">记录时间: ${formattedDate}</p>
+                    </div>
+                    <span class="text-red-500 font-medium">-${Math.abs(record.points)} 积分</span>
+                `;
+                
+                penaltyHistory.appendChild(recordEl);
             });
         }
 
@@ -567,31 +970,133 @@
             showCheckinToast(goal.points);
         }
 
+        // 处理扣分项目签到（新增）
+        function handlePenaltyCheckin(penaltyId) {
+            const penalty = appState.penalties.find(p => p.id === penaltyId);
+            if (!penalty) return;
+            
+            // 计算扣分数（确保为负数）
+            const penaltyPoints = -Math.abs(penalty.points);
+            // 防止积分扣到负数
+            if (appState.totalPoints + penaltyPoints < 0) {
+                alert(`积分不足！当前积分${appState.totalPoints}，该项目扣${Math.abs(penaltyPoints)}分`);
+                return;
+            }
+            
+            // 扣积分
+            appState.totalPoints += penaltyPoints;
+            
+            // 记录扣分签到日期（如果是每日一次）
+            if (penalty.checkinLimit === 'once') {
+                appState.lastPenaltyCheckins[penaltyId] = new Date().toDateString();
+            }
+            
+            // 记录扣分历史
+            appState.penaltyHistory.push({
+                id: Date.now().toString(),
+                penaltyId: penalty.id,
+                penaltyName: penalty.name,
+                points: penaltyPoints,
+                timestamp: Date.now()
+            });
+            
+            // 保存数据并更新UI
+            saveToFirebase();
+            renderPenalties();
+            renderPenaltyHistory();
+            updatePointsDisplay();
+            
+            // 显示扣分提示（新增提示组件）
+            showPenaltyToast(Math.abs(penaltyPoints));
+        }
+
         // 处理奖励兑换
         function handleRedeem(rewardId) {
             const reward = appState.rewards.find(r => r.id === rewardId);
-            if (!reward || appState.totalPoints < reward.cost) return;
+            if (!reward || appState.totalPoints < reward.cost) {
+                alert(`积分不足！当前积分${appState.totalPoints}，该奖励需${reward.cost}分`);
+                return;
+            }
             
-            // 扣除积分
+            // 扣积分
             appState.totalPoints -= reward.cost;
             
-            // 记录兑换历史
+            // 生成券（新增逻辑）
+            const newCoupon = {
+                id: Date.now().toString(), // 券唯一ID
+                rewardId: reward.id,
+                rewardName: reward.name,
+                cost: reward.cost,
+                createTime: Date.now(), // 兑换时间
+                status: 'unused', // 状态：未使用/已使用
+                useTime: null
+            };
+            appState.coupons.push(newCoupon);
+            
+            // 记录兑换历史（仅记录兑换行为）
             appState.redemptionHistory.push({
                 id: Date.now().toString(),
                 rewardId: reward.id,
                 rewardName: reward.name,
                 cost: reward.cost,
-                timestamp: Date.now()
+                createTime: Date.now()
             });
             
             // 保存数据并更新UI
             saveToFirebase();
             renderRewards();
             renderRedemptionHistory();
+            renderCoupons(); // 刷新券包
             updatePointsDisplay();
             
-            // 显示提示
-            showRedeemToast();
+            // 显示兑换成功提示（修改原有提示文案）
+            showRedeemToast(`成功兑换「${reward.name}」券！`);
+        }
+
+        // 使用券逻辑（新增）
+        function useCoupon(couponId) {
+            const couponIndex = appState.coupons.findIndex(coupon => coupon.id === couponId);
+            if (couponIndex === -1) return;
+            
+            const coupon = appState.coupons[couponIndex];
+            // 更新券状态为已使用
+            appState.coupons[couponIndex] = {
+                ...coupon,
+                status: 'used',
+                useTime: Date.now() // 记录使用时间
+            };
+            
+            // 生成使用记录
+            appState.usageHistory.push({
+                id: Date.now().toString(),
+                couponId: coupon.id,
+                rewardId: coupon.rewardId,
+                rewardName: coupon.rewardName,
+                cost: coupon.cost,
+                useTime: Date.now()
+            });
+            
+            // 保存数据并更新UI
+            saveToFirebase();
+            renderCoupons();
+            renderRedemptionHistory();
+            renderUsageHistory();
+            
+            // 显示使用成功提示
+            showCouponUsedToast(coupon.rewardName);
+        }
+
+        // 删除奖励（新增）
+        function deleteReward(rewardId) {
+            // 从奖励列表中删除
+            appState.rewards = appState.rewards.filter(reward => reward.id !== rewardId);
+            
+            // 保存数据并更新UI
+            saveToFirebase();
+            renderRewards();
+            
+            // 显示删除成功提示
+            showRewardDeletedToast();
         }
 
         // 添加新目标
@@ -621,12 +1126,34 @@
             renderRewards();
         }
 
+        // 添加扣分项目（新增）
+        function addPenalty(name, points) {
+            const newPenalty = {
+                id: Date.now().toString(),
+                name,
+                points: -Math.abs(parseInt(points)), // 存储为负数
+                checkinLimit: document.querySelector('input[name="penalty-limit"]:checked').value
+            };
+            
+            appState.penalties.push(newPenalty);
+            saveToFirebase();
+            renderPenalties();
+        }
+
         // 删除目标
         function deleteGoal(goalId) {
             appState.goals = appState.goals.filter(goal => goal.id !== goalId);
             delete appState.lastCheckins[goalId]; // 同时删除签到记录
             saveToFirebase();
             renderGoals();
+        }
+
+        // 删除扣分项目（新增）
+        function deletePenalty(penaltyId) {
+            appState.penalties = appState.penalties.filter(penalty => penalty.id !== penaltyId);
+            delete appState.lastPenaltyCheckins[penaltyId]; // 同时删除扣分签到记录
+            saveToFirebase();
+            renderPenalties();
         }
 
         // 显示签到成功提示
@@ -640,11 +1167,66 @@
         }
 
         // 显示兑换成功提示
-        function showRedeemToast() {
+        function showRedeemToast(message = '兑换成功！') {
+            elements.redeemToast.querySelector('span').textContent = message;
             elements.redeemToast.classList.remove('translate-y-20', 'opacity-0');
             
             setTimeout(() => {
                 elements.redeemToast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // 新增：扣分提示
+        function showPenaltyToast(points) {
+            // 复用原有提示组件，修改样式
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-6 right-6 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 flex items-center';
+            toast.innerHTML = `
+                <i class="fa fa-minus-circle mr-2"></i>
+                <span>记录成功！扣除 ${points} 积分</span>
+            `;
+            document.body.appendChild(toast);
+            
+            // 显示动画
+            setTimeout(() => toast.classList.remove('translate-y-20', 'opacity-0'), 10);
+            // 3秒后移除
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+                setTimeout(() => document.body.removeChild(toast), 300);
+            }, 3000);
+        }
+
+        // 新增：券使用成功提示
+        function showCouponUsedToast(rewardName) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-6 right-6 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 flex items-center';
+            toast.innerHTML = `
+                <i class="fa fa-check-circle mr-2"></i>
+                <span>「${rewardName}」券已使用！</span>
+            `;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => toast.classList.remove('translate-y-20', 'opacity-0'), 10);
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+                setTimeout(() => document.body.removeChild(toast), 300);
+            }, 3000);
+        }
+
+        // 新增：奖励删除成功提示
+        function showRewardDeletedToast() {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-6 right-6 bg-gray-700 text-white px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 flex items-center';
+            toast.innerHTML = `
+                <i class="fa fa-trash mr-2"></i>
+                <span>奖励已删除</span>
+            `;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => toast.classList.remove('translate-y-20', 'opacity-0'), 10);
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+                setTimeout(() => document.body.removeChild(toast), 300);
             }, 3000);
         }
 
@@ -658,6 +1240,25 @@
         function closeAddRewardModal() {
             elements.addRewardModal.classList.add('hidden');
             elements.addRewardForm.reset();
+        }
+
+        // 关闭添加扣分项目模态框（新增）
+        function closeAddPenaltyModal() {
+            const { addPenaltyModal, addPenaltyForm } = elements;
+            addPenaltyModal.classList.add('hidden');
+            addPenaltyForm.reset();
+        }
+
+        // 关闭使用券模态框（新增）
+        function closeUseCouponModal() {
+            const { useCouponModal } = elements;
+            useCouponModal.classList.add('hidden');
+        }
+
+        // 关闭删除奖励模态框（新增）
+        function closeDeleteRewardModal() {
+            const { deleteRewardModal } = elements;
+            deleteRewardModal.classList.add('hidden');
         }
 
         // 切换到奖励页面
@@ -705,6 +1306,38 @@
                 closeAddRewardModal();
             });
             
+            // 扣分项目相关事件（新增）
+            elements.addPenaltyBtn.addEventListener('click', openAddPenaltyModal);
+            elements.cancelPenaltyBtn.addEventListener('click', closeAddPenaltyModal);
+            
+            elements.addPenaltyForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const name = document.getElementById('penalty-name').value;
+                const points = document.getElementById('penalty-points').value;
+                addPenalty(name, points);
+                closeAddPenaltyModal();
+            });
+            
+            // 使用券相关事件（新增）
+            elements.cancelUseCouponBtn.addEventListener('click', closeUseCouponModal);
+            elements.confirmUseCouponBtn.addEventListener('click', () => {
+                const couponId = elements.currentCouponId.value;
+                if (couponId) {
+                    useCoupon(couponId);
+                    closeUseCouponModal();
+                }
+            });
+            
+            // 删除奖励相关事件（新增）
+            elements.cancelDeleteRewardBtn.addEventListener('click', closeDeleteRewardModal);
+            elements.confirmDeleteRewardBtn.addEventListener('click', () => {
+                const rewardId = elements.currentRewardId.value;
+                if (rewardId) {
+                    deleteReward(rewardId);
+                    closeDeleteRewardModal();
+                }
+            });
+            
             // 点击模态框外部关闭
             elements.addGoalModal.addEventListener('click', (e) => {
                 if (e.target === elements.addGoalModal) {
@@ -717,6 +1350,27 @@
                     closeAddRewardModal();
                 }
             });
+            
+            // 点击扣分模态框外部关闭（新增）
+            elements.addPenaltyModal.addEventListener('click', (e) => {
+                if (e.target === elements.addPenaltyModal) {
+                    closeAddPenaltyModal();
+                }
+            });
+            
+            // 点击使用券模态框外部关闭（新增）
+            elements.useCouponModal.addEventListener('click', (e) => {
+                if (e.target === elements.useCouponModal) {
+                    closeUseCouponModal();
+                }
+            });
+            
+            // 点击删除奖励模态框外部关闭（新增）
+            elements.deleteRewardModal.addEventListener('click', (e) => {
+                if (e.target === elements.deleteRewardModal) {
+                    closeDeleteRewardModal();
+                }
+            });
         }
 
         // 初始化应用 (确保Firebase加载完成)
@@ -727,15 +1381,23 @@
                 // 从Firebase加载数据
                 loadFromFirebase(true).then(() => {
                     renderGoals();
+                    renderPenalties(); // 新增：渲染扣分项目
                     renderRewards();
+                    renderCoupons(); // 新增：渲染券包
                     renderRedemptionHistory();
+                    renderUsageHistory(); // 新增：渲染使用记录
+                    renderPenaltyHistory(); // 新增：渲染扣分记录
                     updatePointsDisplay();
                 }).catch(err => {
                     console.error('❌ 初始化失败，使用本地数据:', err);
                     loadFromLocalStorage();
                     renderGoals();
+                    renderPenalties();
                     renderRewards();
+                    renderCoupons();
                     renderRedemptionHistory();
+                    renderUsageHistory();
+                    renderPenaltyHistory();
                     updatePointsDisplay();
                 });
                 bindEventListeners();
